@@ -8,6 +8,7 @@ local log = require("log")
 local cheats = require("cheats")
 local items = require("items")
 local aggro_loop = require("aggro_loop")
+local void_aggro = require("void_aggro")
 local buffs_mod = require("buffs")
 local events = require("events")
 local chaos = require("chaos")
@@ -216,7 +217,9 @@ local function bootstrap()
 		game_paused = game_paused,
 		spawn = function(cfg) return Spawn.spawn(spawn_deps, cfg) end,
 		tunables = tunables,
+		void_aggro = void_aggro,
 	}
+	void_aggro.interval_ms = config.aggro_interval_ms or 500
 
 	-- Pre-load the Collector class so the FIRST spawn works on a cold save. A
 	-- single LoadAsset of a streamed class can miss, so nudge it on a timer until

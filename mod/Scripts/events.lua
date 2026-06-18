@@ -95,9 +95,29 @@ M.handlers = {
 		return ctx.cheats.spawn_creature(p.creature or "CollectorLeviathan")
 	end,
 
+	-- A single Void Leviathan child. The Void hunts via the out-of-bounds tag, not
+	-- the Collector prey tag, so it needs ctx.void_aggro (see void_aggro.lua).
+	spawn_void_child = function(ctx, ev)
+		local p = ev.params or {}
+		if ctx.void_aggro then ctx.void_aggro.start() end
+		if ctx.spawn then
+			local cfg = M.spawn_config(p, 1)
+			cfg.spawn_distance = tunable(ctx, "leviathan_spawn_distance", cfg.spawn_distance)
+			local spawned, how = ctx.spawn(cfg)
+			if spawned then
+				ctx.log.event("chaos.spawn", { id = ev.id, how = how, n = #spawned })
+				return true
+			end
+			ctx.log.warn("chaos: spawn_void_child failed: " .. tostring(how))
+			return false
+		end
+		return ctx.cheats.spawn_creature(p.creature or "VoidLeviathanChild")
+	end,
+
 	spawn_leviathan_swarm = function(ctx, ev)
 		local p = ev.params or {}
-		ctx.aggro.start()
+		-- Swarm is Void children -> Void aggro (out-of-bounds tag), not Collector.
+		if ctx.void_aggro then ctx.void_aggro.start() end
 		local count = math.floor(tunable(ctx, "swarm_size", p.count or 3))
 		if ctx.spawn then
 			local cfg = M.spawn_config(p, count)

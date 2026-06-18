@@ -4,7 +4,7 @@
   "events": [
     {
       "id": "spawn_leviathan",
-      "label": "Release a Leviathan",
+      "label": "Collector Leviathan",
       "category": "bad",
       "weight": 1.0,
       "cooldownSeconds": 180,
@@ -39,6 +39,25 @@
         "spawn_distance": 1500.0
       },
       "description": "Several leviathans spawn at once. Good luck."
+    },
+    {
+      "id": "spawn_void_child",
+      "label": "Void Leviathan Child",
+      "category": "bad",
+      "weight": 0.8,
+      "cooldownSeconds": 240,
+      "kind": "instant",
+      "leviathan": true,
+      "params": {
+        "creature": "VoidLeviathanChild",
+        "count": 1,
+        "class_path": "/Game/Blueprints/AI/Agents/VoidLeviathan/BP_VoidLeviathanChild.BP_VoidLeviathanChild_C",
+        "class_short_name": "BP_VoidLeviathanChild_C",
+        "instance_short_name": "BP_VoidLeviathanChild_C",
+        "asset_path": "/Game/Blueprints/AI/Agents/VoidLeviathan/BP_VoidLeviathanChild",
+        "spawn_distance": 1500.0
+      },
+      "description": "A Void Leviathan child spawns and hunts the player."
     },
     {
       "id": "god_mode",

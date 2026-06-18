@@ -18,6 +18,10 @@ caesarakalaeii):
   [**sub2_cheatmenu**](https://github.com/caesarakalaeii/sub2_cheatmenu) repo's
   `SpawnCollectorLeviathan` mod, including its captured Collector/Void BP class
   paths.
+- `mod/Scripts/void_aggro.lua` — the Void-leviathan out-of-bounds aggro
+  (harvesting the `GE_OutOfBounds`-granted tag off the player's
+  `OutOfBoundsCheckComponent` and re-asserting it) is ported from the same
+  `SpawnCollectorLeviathan` mod's UAT-confirmed Void aggro.
 - `vote-engine/internal/bridge/detect*.go` adapts sub2_random's installer's
   Steam-library detection.
 

@@ -104,6 +104,32 @@ describe("events handlers", function()
 		assert.is_true(got_cfg.ignore_collisions)
 	end)
 
+	it("spawn_void_child starts the Void (out-of-bounds) aggro and spawns one child", function()
+		local ctx = fake_ctx()
+		local cfg
+		local void_started = false
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.void_aggro = { start = function() void_started = true end }
+		ctx.spawn = function(c) cfg = c; return { {} }, "class_path" end
+		assert.is_true(events.handlers.spawn_void_child(ctx, {
+			id = "spawn_void_child", params = { class_path = "/Game/V.V_C" },
+		}))
+		assert.is_true(void_started, "void child must start the Void OOB aggro loop")
+		assert.are.equal(1, cfg.spawn_count)
+	end)
+
+	it("spawn_leviathan_swarm uses the Void aggro (children are Void), not Collector", function()
+		local ctx = fake_ctx()
+		local void_started, collector_started = false, false
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.void_aggro = { start = function() void_started = true end }
+		ctx.aggro = { start = function() collector_started = true end }
+		ctx.spawn = function() return { {}, {}, {} }, "class_path" end
+		events.handlers.spawn_leviathan_swarm(ctx, { id = "spawn_leviathan_swarm", params = { class_path = "/Game/V.V_C", count = 3 } })
+		assert.is_true(void_started)
+		assert.is_false(collector_started)
+	end)
+
 	it("spawn_leviathan reports failure when ctx.spawn cannot resolve a class", function()
 		local ctx = fake_ctx()
 		ctx.log = { event = function() end, warn = function() end }
