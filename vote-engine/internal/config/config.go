@@ -161,9 +161,6 @@ func (c *Config) Warnings() []string {
 	if c.Overlay.Enabled && c.Overlay.Bind != "127.0.0.1" && c.Overlay.Bind != "localhost" {
 		w = append(w, fmt.Sprintf("overlay bound to %q (not loopback) — the overlay will be reachable from the network", c.Overlay.Bind))
 	}
-	if c.Source.Mode == "allchat" && c.Source.Allchat.OverlayID != "" && c.Source.Allchat.Token == "" {
-		w = append(w, "allchat overlayId set without a token — the overlay endpoint usually requires a JWT")
-	}
 	return w
 }
 

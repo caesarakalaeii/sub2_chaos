@@ -15,9 +15,9 @@ import (
 // AllChatOpts configures the all-chat WebSocket source.
 type AllChatOpts struct {
 	BaseURL          string // http(s) base; scheme is auto-mapped to ws(s)
-	StreamerUsername string // => /ws/chat/{username} (anonymous, recommended)
-	OverlayID        string // => /ws/overlay/{id} (needs token, triggers polling)
-	Token            string // JWT for the overlay path
+	StreamerUsername string // => /ws/chat/{username}; use when an all-chat overlay is already running
+	OverlayID        string // => /ws/overlay/{id}; also triggers all-chat platform polling (token optional)
+	Token            string // optional JWT for the overlay path
 	Logf             func(format string, a ...any)
 }
 

@@ -16,11 +16,17 @@ source:
     requestTags: true                # IRCv3 tags give a stable user-id for dedupe
 
   # Used only when mode == "allchat". Multi-platform (incl. YouTube).
+  # Set ONE of overlayId or streamerUsername:
+  #   overlayId        -> /ws/overlay/{id}: also triggers all-chat to poll the
+  #                       platforms, so the sidecar's connection alone drives
+  #                       chat (nothing else has to run). token optional.
+  #   streamerUsername -> /ws/chat/{username}: use when an all-chat overlay is
+  #                       already running; does not trigger polling.
   allchat:
     baseURL: "https://allch.at"      # http(s); scheme auto-mapped to ws(s)
-    streamerUsername: "your_channel" # uses /ws/chat/{username} (anonymous, recommended)
-    overlayId: ""                    # OR an overlay id => /ws/overlay/{id} (needs token)
-    token: ""                        # JWT; only for the overlayId path
+    overlayId: ""                    # e.g. 00000000-0000-4000-8000-000000000a11
+    streamerUsername: ""             # alternative to overlayId
+    token: ""                        # optional JWT for the overlay path
 
 # ── Voting ──────────────────────────────────────────────────────────
 vote:
