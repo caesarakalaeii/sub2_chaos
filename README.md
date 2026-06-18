@@ -52,8 +52,17 @@ shared catalog in alongside it:
     events.json                 # from the repo root (the mod reads it at runtime)
 ```
 
-Enable it in UE4SS `mods.txt`. In-game options live under **SN2ModSettings → Sub2Chaos**
-(master switch + per-category gates: good / bad / chaos).
+Enable it in UE4SS `mods.txt`. In-game options live under **SN2ModSettings → Sub2 Chaos**:
+- **Toggles** — master switch + per-category gates (good / bad / chaos / leviathans), debug hotkeys.
+- **Voting sliders** — vote duration, options per vote, cooldown. These are sent
+  back to the sidecar and applied at the next round, so you tune voting from the
+  menu rather than `config.yaml` (see below).
+- **Effect sliders** — effect-duration multiplier, super-swim speed, fast/slow-world
+  intensity, damage severity, leviathan spawn distance, swarm size.
+
+Almost everything tunable lives in the menu — `config.yaml` is only needed to pick
+the chat source (Twitch channel / all-chat overlay id) and as the headless/`--simulate`
+default. Once the game is running, the in-game sliders win for vote timing.
 
 ### 2. Run the vote-engine
 
@@ -79,6 +88,22 @@ By default the overlay server binds to loopback (`127.0.0.1`), reachable only fr
 the same machine. Pass `--public` to bind to `0.0.0.0` instead so the overlay is
 reachable from other devices on the network (e.g. OBS on a second PC); the engine
 logs a warning when it does so. You can also set `overlay.bind` in `config.yaml`.
+
+### Event timing, announcements & pause
+
+- **Heads-up before an event fires.** When a round resolves, the winner is
+  *announced* first and only *executed* after `vote.announceLeadSeconds` (default
+  5). The mod shows an on-screen banner ("Chaos incoming: … (in 5s)") so the
+  player knows what's about to happen. Set `announceLeadSeconds: 0` for instant
+  events.
+- **Pause menu pauses the vote.** While the in-game pause menu is open the mod
+  reports `paused` (via `UGameplayStatics::IsGamePaused`); the vote-engine freezes
+  the countdown and starts no new rounds, and any already-announced event is held
+  until you resume — so nothing fires while you're in a menu.
+- **Game-not-running detection.** The mod heartbeats `chaos_status.json`; if the
+  vote-engine sees no fresh write (game closed, crashed, or not launched yet) it
+  pauses instead of burning rounds and chat votes into the void, and resumes when
+  the game comes back. (Not applied under `--simulate`, which has no game.)
 
 ### Try it without the game or a live stream
 

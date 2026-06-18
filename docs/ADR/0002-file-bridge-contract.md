@@ -16,12 +16,21 @@ Two JSON files in the mod folder:
 - **`chaos_state.json`** (sidecar → mod, also the overlay payload). Fields:
   `schemaVersion, round, phase, options[{index,id,label,category}], tallies[],
   totalVotes, secondsRemaining, voteDurationSeconds, winner{index,id,label}|null,
-  winnerNonce, serverTime`. The mod executes a winner only when `winnerNonce`
-  changes — the idempotency key, so a winner never fires twice across polls.
+  winnerNonce, serverTime, applyAtServerTime, announceLeadSeconds`. The mod
+  executes a winner only when `winnerNonce` changes — the idempotency key, so a
+  winner never fires twice across polls. `announceLeadSeconds` is the heads-up
+  lead: the mod announces a fresh winner on sight but holds execution for that
+  many seconds (`applyAtServerTime` is the absolute target, for the overlay; the
+  mod schedules off its own clock + lead to stay clock-skew-proof). See ADR-0004.
 - **`chaos_status.json`** (mod → sidecar). Fields: `schemaVersion,
   gameplayActive, paused, lastAppliedNonce, modVersion, updatedAt`. The sidecar
   pauses voting (freezes the countdown, starts no new rounds) when gameplay is
-  inactive.
+  inactive OR `paused` is true (the in-game pause menu). The mod sets `paused`
+  from `UGameplayStatics::IsGamePaused`. The mod also **heartbeats** this file
+  (rewrites it every ~2s even when nothing changed); the sidecar treats a
+  missing or >6s-stale `updatedAt` as "the game isn't running" and pauses, so it
+  doesn't burn rounds/chat votes while the game is closed (skipped under
+  `--simulate`, which has no game).
 
 **Atomic writes are mandatory on both sides**: write `<file>.tmp` in the SAME
 directory, then `rename` over the target. NEVER use the OS temp dir — under

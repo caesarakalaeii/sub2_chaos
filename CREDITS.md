@@ -12,6 +12,12 @@ caesarakalaeii):
 - `mod/Scripts/settings_bridge.lua` — SN2ModSettings bridge.
 - `mod/Scripts/aggro_loop.lua` is a lean extract of sub2_random's
   `spawn_hook.start_static_aggro_loop`.
+- `mod/Scripts/spawn.lua` — the pure `UWorld:SpawnActor` leviathan-spawn logic
+  (class resolve / asset-load retry / AlwaysSpawn / jittered placement) is ported
+  from the sibling
+  [**sub2_cheatmenu**](https://github.com/caesarakalaeii/sub2_cheatmenu) repo's
+  `SpawnCollectorLeviathan` mod, including its captured Collector/Void BP class
+  paths.
 - `vote-engine/internal/bridge/detect*.go` adapts sub2_random's installer's
   Steam-library detection.
 
