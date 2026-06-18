@@ -61,13 +61,19 @@ Enable it in UE4SS `mods.txt`. In-game options live under **SN2ModSettings → S
 cd vote-engine
 go build -o vote-engine .
 cp ../config.example.yaml ../config.yaml      # then edit config.yaml
-./vote-engine --config ../config.yaml --game-dir "<path to your Subnautica2 install>"
+./vote-engine --config ../config.yaml --catalog ../events.json --game-dir "<path to your Subnautica2 install>"
 ```
+
+`catalog.path` (and the `--catalog` flag) is resolved relative to the working
+directory, so when you run from `vote-engine/` point it at `../events.json` as
+above — the bare `./events.json` default only resolves when you run from the repo
+root.
 
 `--game-dir` (or `bridge.gameDir` in the config) tells the sidecar where to write
 `chaos_state.json` so the mod can read it; on a standard Steam install it is also
-auto-detected. Add the overlay to OBS as a **Browser Source**:
-`http://127.0.0.1:8777/overlay`.
+auto-detected. If auto-detect reports *multiple installs* (e.g. several symlinked
+Steam roots), set `bridge.gameDir` explicitly. Add the overlay to OBS as a
+**Browser Source**: `http://127.0.0.1:8777/overlay`.
 
 By default the overlay server binds to loopback (`127.0.0.1`), reachable only from
 the same machine. Pass `--public` to bind to `0.0.0.0` instead so the overlay is
