@@ -69,6 +69,11 @@ cp ../config.example.yaml ../config.yaml      # then edit config.yaml
 auto-detected. Add the overlay to OBS as a **Browser Source**:
 `http://127.0.0.1:8777/overlay`.
 
+By default the overlay server binds to loopback (`127.0.0.1`), reachable only from
+the same machine. Pass `--public` to bind to `0.0.0.0` instead so the overlay is
+reachable from other devices on the network (e.g. OBS on a second PC); the engine
+logs a warning when it does so. You can also set `overlay.bind` in `config.yaml`.
+
 ### Try it without the game or a live stream
 
 ```sh

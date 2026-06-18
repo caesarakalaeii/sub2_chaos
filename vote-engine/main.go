@@ -36,6 +36,7 @@ func run() error {
 		gameDir        = flag.String("game-dir", "", "override: SN2 install root")
 		modDir         = flag.String("mod-dir", "", "override: mod folder")
 		overlayPort    = flag.Int("overlay-port", 0, "override: overlay port")
+		public         = flag.Bool("public", false, "bind the overlay to 0.0.0.0 (reachable from the network) instead of loopback")
 		source         = flag.String("source", "", "override: twitch|allchat")
 		twitchChannel  = flag.String("twitch-channel", "", "override: twitch channel")
 		allchatURL     = flag.String("allchat-url", "", "override: all-chat base URL")
@@ -56,7 +57,7 @@ func run() error {
 		catalogPath: *catalogPath, bridgeFile: *bridgeFile, gameDir: *gameDir, modDir: *modDir,
 		overlayPort: *overlayPort, source: *source, twitchChannel: *twitchChannel,
 		allchatURL: *allchatURL, allchatUser: *allchatUser, allchatOverlay: *allchatOverlay,
-		allchatToken: *allchatToken, logLevel: *logLevel,
+		allchatToken: *allchatToken, logLevel: *logLevel, public: *public,
 	})
 
 	logger := newLogger(cfg.Log.Level)
@@ -149,6 +150,7 @@ type overrides struct {
 	allchatOverlay, allchatToken                   string
 	logLevel                                       string
 	overlayPort                                    int
+	public                                         bool
 }
 
 func applyOverrides(c *config.Config, o overrides) {
@@ -166,6 +168,9 @@ func applyOverrides(c *config.Config, o overrides) {
 	}
 	if o.overlayPort != 0 {
 		c.Overlay.Port = o.overlayPort
+	}
+	if o.public {
+		c.Overlay.Bind = "0.0.0.0"
 	}
 	if o.source != "" {
 		c.Source.Mode = o.source
