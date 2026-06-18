@@ -9,6 +9,7 @@
       "weight": 1.0,
       "cooldownSeconds": 180,
       "kind": "instant",
+      "leviathan": true,
       "params": { "creature": "CollectorLeviathan", "count": 1 },
       "description": "A leviathan spawns and hunts the player."
     },
@@ -19,6 +20,7 @@
       "weight": 0.5,
       "cooldownSeconds": 360,
       "kind": "instant",
+      "leviathan": true,
       "params": { "creature": "VoidLeviathanChild", "count": 3 },
       "description": "Several leviathans spawn at once. Good luck."
     },
