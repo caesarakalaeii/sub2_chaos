@@ -16,7 +16,7 @@ type TwitchOpts struct {
 	Channel     string // channel login (with or without leading '#')
 	Server      string // host:port (default irc.chat.twitch.tv:6697)
 	UseTLS      bool
-	RequestTags bool                       // request IRCv3 tags for a stable user-id
+	RequestTags bool // request IRCv3 tags for a stable user-id
 	Logf        func(format string, a ...any)
 }
 

@@ -93,7 +93,7 @@ func TestMachinePauseFreezesCountdown(t *testing.T) {
 	m := NewMachine(testCfg(), testCatalog(), 7)
 	base := time.Unix(1_700_000_000, 0).UTC()
 
-	m.Advance(base)                  // voting, ends base+10
+	m.Advance(base)                      // voting, ends base+10
 	m.Advance(base.Add(2 * time.Second)) // remaining ~8
 
 	m.SetActive(false)

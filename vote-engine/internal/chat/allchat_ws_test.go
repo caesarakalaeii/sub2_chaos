@@ -13,9 +13,9 @@ func TestBuildAllChatURL(t *testing.T) {
 		{base: "http://localhost:8080", overlay: "ovl-1", token: "jwt", since: 1500,
 			want: "ws://localhost:8080/ws/overlay/ovl-1?since=1500&token=jwt"},
 		{base: "https://allch.at", user: "u", since: 42, want: "wss://allch.at/ws/chat/u?since=42"},
-		{base: "https://allch.at", wantErr: true},                       // neither user nor overlay
+		{base: "https://allch.at", wantErr: true},                          // neither user nor overlay
 		{base: "https://allch.at", user: "u", overlay: "o", wantErr: true}, // both? user wins, no error actually
-		{base: "", user: "u", wantErr: true},                            // empty base
+		{base: "", user: "u", wantErr: true},                               // empty base
 	}
 	for i, c := range cases {
 		got, err := BuildAllChatURL(c.base, c.user, c.overlay, c.token, c.since)

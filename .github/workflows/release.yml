@@ -1,0 +1,31 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: windows, goarch: amd64, ext: ".exe" }
+          - { goos: linux, goarch: amd64, ext: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: build
+        working-directory: vote-engine
+        run: >-
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
+          go build -ldflags="-s -w"
+          -o vote-engine-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} .
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: vote-engine/vote-engine-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}

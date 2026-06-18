@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  go:
+    name: vote-engine (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vote-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - run: go vet ./...
+      - run: go test ./...
+      - name: cross-compile (windows/amd64)
+        run: GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o /tmp/vote-engine.exe .
+      - name: build (linux/amd64)
+        run: GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /tmp/vote-engine .
+
+  lua:
+    name: ChaosMod (Lua)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.4"
+      - run: lua tests/run.lua

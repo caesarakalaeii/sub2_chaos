@@ -40,27 +40,34 @@ Chat ingestion is an **exclusive-or**: you use **either** direct Twitch IRC **or
 
 ## Quick start
 
-### 1. Run the vote-engine
+### 1. Install the mod
+
+Copy the mod into your Subnautica 2 UE4SS mods folder as `Sub2Chaos`, and copy the
+shared catalog in alongside it:
+
+```
+<SN2>/Subnautica2/Binaries/Win64/ue4ss/Mods/Sub2Chaos/
+    Scripts/...                 # from mod/Scripts/
+    enabled.txt                 # from mod/enabled.txt
+    events.json                 # from the repo root (the mod reads it at runtime)
+```
+
+Enable it in UE4SS `mods.txt`. In-game options live under **SN2ModSettings → Sub2Chaos**
+(master switch + per-category gates: good / bad / chaos).
+
+### 2. Run the vote-engine
 
 ```sh
 cd vote-engine
 go build -o vote-engine .
 cp ../config.example.yaml ../config.yaml      # then edit config.yaml
-./vote-engine --config ../config.yaml
+./vote-engine --config ../config.yaml --game-dir "<path to your Subnautica2 install>"
 ```
 
-Add the overlay to OBS as a **Browser Source**: `http://127.0.0.1:8777/overlay`.
-
-### 2. Install the mod
-
-Copy `mod/` into your Subnautica 2 UE4SS mods folder as `Sub2Chaos`:
-
-```
-<SN2>/Subnautica2/Binaries/Win64/ue4ss/Mods/Sub2Chaos/
-```
-
-Enable it in UE4SS `mods.txt`. In-game options live under **SN2ModSettings → Sub2Chaos**
-(master switch + per-category gates: good / bad / chaos).
+`--game-dir` (or `bridge.gameDir` in the config) tells the sidecar where to write
+`chaos_state.json` so the mod can read it; on a standard Steam install it is also
+auto-detected. Add the overlay to OBS as a **Browser Source**:
+`http://127.0.0.1:8777/overlay`.
 
 ### Try it without the game or a live stream
 
@@ -77,6 +84,18 @@ open `http://127.0.0.1:8777/overlay` in any browser.
 - Go sidecar: `cd vote-engine && go test ./...`
 - Lua mod: `lua tests/run.lua`
 - Architecture decisions: [`docs/ADR/`](./docs/ADR).
+
+## Status
+
+Working v1: vote-engine (both chat sources + overlay + bridge, headless-testable
+via `--simulate`) and the ChaosMod executor are complete and tested.
+
+One follow-up needs an in-game step: `give_item` currently spawns the item as a
+world pickup at the player (always works). To upgrade it to a true inventory
+insert, run [`tools/probe.lua`](./tools/probe.lua) in-game once (it dumps the
+`UWEInventory` / `SN2CheatManager` candidates to `probe_output.txt`), then wire
+the confirmed method into `mod/Scripts/items.lua`. See
+[`docs/ADR/0003`](./docs/ADR/0003-item-grant-discovery.md).
 
 ## License
 

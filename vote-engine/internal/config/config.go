@@ -168,7 +168,9 @@ func (c *Config) Warnings() []string {
 }
 
 // Duration helpers.
-func (v VoteConfig) VoteDuration() time.Duration { return time.Duration(v.VoteDurationSeconds) * time.Second }
+func (v VoteConfig) VoteDuration() time.Duration {
+	return time.Duration(v.VoteDurationSeconds) * time.Second
+}
 func (v VoteConfig) CooldownDuration() time.Duration {
 	return time.Duration(v.CooldownSeconds) * time.Second
 }
