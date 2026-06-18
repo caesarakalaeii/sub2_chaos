@@ -97,6 +97,11 @@ insert, run [`tools/probe.lua`](./tools/probe.lua) in-game once (it dumps the
 the confirmed method into `mod/Scripts/items.lua`. See
 [`docs/ADR/0003`](./docs/ADR/0003-item-grant-discovery.md).
 
+## Credits
+
+Reuses Lua utilities and patterns from [sub2_random](https://github.com/caesarakalaeii/sub2_random)
+and others — see [CREDITS.md](./CREDITS.md).
+
 ## License
 
 [GPLv3](./LICENSE).
