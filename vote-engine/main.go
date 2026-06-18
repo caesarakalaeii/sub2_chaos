@@ -29,20 +29,22 @@ func main() {
 
 func run() error {
 	var (
-		cfgPath       = flag.String("config", "config.yaml", "path to config.yaml")
-		catalogPath   = flag.String("catalog", "", "override: path to events.json")
-		simulate      = flag.Bool("simulate", false, "inject synthetic votes (no chat, no game)")
-		bridgeFile    = flag.String("bridge-file", "", "override: absolute path to chaos_state.json")
-		gameDir       = flag.String("game-dir", "", "override: SN2 install root")
-		modDir        = flag.String("mod-dir", "", "override: mod folder")
-		overlayPort   = flag.Int("overlay-port", 0, "override: overlay port")
-		source        = flag.String("source", "", "override: twitch|allchat")
-		twitchChannel = flag.String("twitch-channel", "", "override: twitch channel")
-		allchatURL    = flag.String("allchat-url", "", "override: all-chat base URL")
-		allchatUser   = flag.String("allchat-user", "", "override: all-chat streamer username")
-		logLevel      = flag.String("log-level", "", "override: debug|info|warn|error")
-		simVoters     = flag.Int("sim-voters", 60, "simulate: fake voter pool size")
-		simRate       = flag.Duration("sim-rate", 120*time.Millisecond, "simulate: delay between fake votes")
+		cfgPath        = flag.String("config", "config.yaml", "path to config.yaml")
+		catalogPath    = flag.String("catalog", "", "override: path to events.json")
+		simulate       = flag.Bool("simulate", false, "inject synthetic votes (no chat, no game)")
+		bridgeFile     = flag.String("bridge-file", "", "override: absolute path to chaos_state.json")
+		gameDir        = flag.String("game-dir", "", "override: SN2 install root")
+		modDir         = flag.String("mod-dir", "", "override: mod folder")
+		overlayPort    = flag.Int("overlay-port", 0, "override: overlay port")
+		source         = flag.String("source", "", "override: twitch|allchat")
+		twitchChannel  = flag.String("twitch-channel", "", "override: twitch channel")
+		allchatURL     = flag.String("allchat-url", "", "override: all-chat base URL")
+		allchatUser    = flag.String("allchat-user", "", "override: all-chat streamer username")
+		allchatOverlay = flag.String("allchat-overlay", "", "override: all-chat overlay id (overlay path)")
+		allchatToken   = flag.String("allchat-token", "", "override: all-chat token (overlay path)")
+		logLevel       = flag.String("log-level", "", "override: debug|info|warn|error")
+		simVoters      = flag.Int("sim-voters", 60, "simulate: fake voter pool size")
+		simRate        = flag.Duration("sim-rate", 120*time.Millisecond, "simulate: delay between fake votes")
 	)
 	flag.Parse()
 
@@ -53,7 +55,8 @@ func run() error {
 	applyOverrides(cfg, overrides{
 		catalogPath: *catalogPath, bridgeFile: *bridgeFile, gameDir: *gameDir, modDir: *modDir,
 		overlayPort: *overlayPort, source: *source, twitchChannel: *twitchChannel,
-		allchatURL: *allchatURL, allchatUser: *allchatUser, logLevel: *logLevel,
+		allchatURL: *allchatURL, allchatUser: *allchatUser, allchatOverlay: *allchatOverlay,
+		allchatToken: *allchatToken, logLevel: *logLevel,
 	})
 
 	logger := newLogger(cfg.Log.Level)
@@ -143,6 +146,7 @@ func run() error {
 type overrides struct {
 	catalogPath, bridgeFile, gameDir, modDir       string
 	source, twitchChannel, allchatURL, allchatUser string
+	allchatOverlay, allchatToken                   string
 	logLevel                                       string
 	overlayPort                                    int
 }
@@ -174,6 +178,12 @@ func applyOverrides(c *config.Config, o overrides) {
 	}
 	if o.allchatUser != "" {
 		c.Source.Allchat.StreamerUsername = o.allchatUser
+	}
+	if o.allchatOverlay != "" {
+		c.Source.Allchat.OverlayID = o.allchatOverlay
+	}
+	if o.allchatToken != "" {
+		c.Source.Allchat.Token = o.allchatToken
 	}
 	if o.logLevel != "" {
 		c.Log.Level = o.logLevel
