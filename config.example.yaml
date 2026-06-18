@@ -1,0 +1,57 @@
+# sub2_chaos vote-engine — example config.
+# Copy this to config.yaml and edit. Flags override these values;
+# $GAME_DIR overrides bridge.gameDir.
+
+# ── Chat source (EXCLUSIVE OR: pick exactly one mode) ───────────────
+# all-chat already de-duplicates across platforms, so we ingest from
+# ONE source only — never both.
+source:
+  mode: twitch            # "twitch" | "allchat"
+
+  # Used only when mode == "twitch". Anonymous read-only IRC — no OAuth.
+  twitch:
+    channel: "your_channel"          # channel login, no leading '#'
+    server: "irc.chat.twitch.tv:6697"
+    useTLS: true                     # false => port 6667 plaintext
+    requestTags: true                # IRCv3 tags give a stable user-id for dedupe
+
+  # Used only when mode == "allchat". Multi-platform (incl. YouTube).
+  allchat:
+    baseURL: "https://allch.at"      # http(s); scheme auto-mapped to ws(s)
+    streamerUsername: "your_channel" # uses /ws/chat/{username} (anonymous, recommended)
+    overlayId: ""                    # OR an overlay id => /ws/overlay/{id} (needs token)
+    token: ""                        # JWT; only for the overlayId path
+
+# ── Voting ──────────────────────────────────────────────────────────
+vote:
+  optionsPerRound: 4         # viewers vote by typing 1..N (max 9)
+  voteDurationSeconds: 30    # length of the voting window
+  cooldownSeconds: 20        # gap after a winner before the next round (0 = back-to-back)
+  applyHoldSeconds: 3        # how long the winner stays in the bridge for the mod to catch
+  avoidImmediateRepeat: true # don't reuse last round's options
+  categoryBalance: false     # soft-prevent all-same-category rounds
+  seed: 0                    # 0 = random; non-zero = deterministic (testing)
+
+# ── Bridge (sidecar <-> game) ────────────────────────────────────────
+bridge:
+  modName: "Sub2Chaos"       # folder under ue4ss/Mods/; must match the Lua mod
+  gameDir: ""                # absolute SN2 install root; "" => $GAME_DIR / auto-detect
+  modDir: ""                 # absolute path to the mod folder; overrides gameDir-derived
+  bridgeFile: ""             # absolute path to chaos_state.json; overrides everything above
+  statusFile: ""             # absolute path to chaos_status.json; default <modDir>/chaos_status.json
+  useDiscoveryFile: true     # also try the mod-written discovery file for the mods path
+  writeHz: 4                 # bridge writes/sec during active phases
+
+# ── Overlay (OBS browser source) ─────────────────────────────────────
+overlay:
+  enabled: true
+  bind: "127.0.0.1"          # loopback only by default
+  port: 8777                 # OBS browser source: http://127.0.0.1:8777/overlay
+
+# ── Catalog ──────────────────────────────────────────────────────────
+catalog:
+  path: "./events.json"      # shared source of truth (same file the mod reads)
+
+# ── Logging ──────────────────────────────────────────────────────────
+log:
+  level: "info"              # debug | info | warn | error

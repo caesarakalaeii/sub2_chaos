@@ -1,0 +1,23 @@
+# ── vote-engine (Go) ──────────────────────────────────────────────
+/vote-engine/vote-engine
+/vote-engine/vote-engine.exe
+/vote-engine/dist/
+*.test
+
+# Streamer's real config (may contain tokens) — only the example is tracked
+config.yaml
+config.yml
+
+# ── runtime bridge files (written at play time) ───────────────────
+# These land in the mod folder during a dev symlink workflow; they
+# belong in the game install, never the repo.
+mod/**/chaos_state.json
+mod/**/chaos_status.json
+mod/**/bridge_path.txt
+*.tmp
+
+# ── logs / misc ───────────────────────────────────────────────────
+*.log
+.luacheckcache
+luacov.stats.out
+luacov.report.out

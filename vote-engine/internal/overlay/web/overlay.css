@@ -1,0 +1,97 @@
+/* Transparent OBS browser-source overlay. Subnautica-ish cyan/amber theme. */
+:root {
+  --cyan: #38e1ff;
+  --amber: #ffb347;
+  --good: #36d399;
+  --bad: #ff5d6c;
+  --chaos: #c084fc;
+  --ink: #eaf6ff;
+  --panel: rgba(4, 16, 28, 0.72);
+  --panel-edge: rgba(56, 225, 255, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent; /* OBS composites over the game capture */
+  font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.app {
+  width: 520px;
+  margin: 16px;
+  padding: 14px 16px 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 0 24px rgba(56, 225, 255, 0.06);
+}
+
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.title {
+  font-weight: 800;
+  letter-spacing: 3px;
+  font-size: 16px;
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(56, 225, 255, 0.6);
+}
+.status { flex: 1; font-size: 13px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+.countdown {
+  min-width: 56px; text-align: center;
+  font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums;
+  color: var(--amber); text-shadow: 0 0 10px rgba(255, 179, 71, 0.5);
+}
+
+.options { display: flex; flex-direction: column; gap: 8px; }
+
+.opt {
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+.opt .fill {
+  position: absolute; inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.28), rgba(56, 225, 255, 0.05));
+  transition: width 0.25s ease;
+  z-index: 0;
+}
+.opt > * { position: relative; z-index: 1; }
+.opt .num {
+  flex: 0 0 28px; height: 28px; line-height: 28px; text-align: center;
+  font-weight: 800; border-radius: 7px;
+  background: rgba(56, 225, 255, 0.16); color: var(--cyan);
+}
+.opt .label { flex: 1; font-size: 15px; font-weight: 600; }
+.opt .count { font-variant-numeric: tabular-nums; font-weight: 700; opacity: 0.92; }
+
+.opt.cat-good   .num { background: rgba(54, 211, 153, 0.18); color: var(--good); }
+.opt.cat-bad    .num { background: rgba(255, 93, 108, 0.18); color: var(--bad); }
+.opt.cat-chaos  .num { background: rgba(192, 132, 252, 0.18); color: var(--chaos); }
+
+.opt.lead { border-color: var(--cyan); }
+.opt.winner {
+  border-color: var(--amber);
+  transform: scale(1.02);
+  box-shadow: 0 0 18px rgba(255, 179, 71, 0.35);
+}
+.opt.winner .fill { background: linear-gradient(90deg, rgba(255, 179, 71, 0.35), rgba(255, 179, 71, 0.08)); }
+.opt.dim { opacity: 0.4; }
+
+.foot { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; opacity: 0.7; letter-spacing: 1px; }
+
+.app.phase-idle .options { opacity: 0.5; }
+.app.idle-msg .options::after {
+  content: "waiting for the dive…";
+  display: block; text-align: center; padding: 18px; opacity: 0.7; font-style: italic;
+}

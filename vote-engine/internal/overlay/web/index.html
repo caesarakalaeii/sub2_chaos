@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>sub2_chaos — vote overlay</title>
+  <link rel="stylesheet" href="/overlay.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="bar">
+      <div class="title">CHAOS VOTE</div>
+      <div id="status" class="status">connecting…</div>
+      <div id="countdown" class="countdown" aria-hidden="true"></div>
+    </header>
+    <div id="options" class="options"></div>
+    <footer class="foot">
+      <span id="round" class="round"></span>
+      <span id="total" class="total"></span>
+    </footer>
+  </div>
+  <script type="module" src="/overlay.mjs"></script>
+</body>
+</html>

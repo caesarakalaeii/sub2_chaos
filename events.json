@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "_comment": "Shared event catalog — single source of truth for the event id namespace. The Go vote-engine reads id/label/category/weight/cooldownSeconds. The UE4SS Lua mod reads id (to pick its handler), kind, durationSeconds and params. Categories must be one of: good | bad | chaos (the mod's enable gates key off these).",
+  "events": [
+    {
+      "id": "spawn_leviathan",
+      "label": "Release a Leviathan",
+      "category": "bad",
+      "weight": 1.0,
+      "cooldownSeconds": 180,
+      "kind": "instant",
+      "params": { "creature": "CollectorLeviathan", "count": 1 },
+      "description": "A leviathan spawns and hunts the player."
+    },
+    {
+      "id": "spawn_leviathan_swarm",
+      "label": "Leviathan Swarm",
+      "category": "chaos",
+      "weight": 0.5,
+      "cooldownSeconds": 360,
+      "kind": "instant",
+      "params": { "creature": "VoidLeviathanChild", "count": 3 },
+      "description": "Several leviathans spawn at once. Good luck."
+    },
+    {
+      "id": "god_mode",
+      "label": "Invincibility (15s)",
+      "category": "good",
+      "weight": 1.0,
+      "cooldownSeconds": 90,
+      "kind": "temporary",
+      "durationSeconds": 15,
+      "buffKey": "god",
+      "description": "Temporary invulnerability."
+    },
+    {
+      "id": "super_speed",
+      "label": "Super Swim Speed (20s)",
+      "category": "good",
+      "weight": 1.0,
+      "cooldownSeconds": 90,
+      "kind": "temporary",
+      "durationSeconds": 20,
+      "buffKey": "swim",
+      "params": { "speed": 1500 },
+      "description": "Swim ~5x faster for a short time."
+    },
+    {
+      "id": "slomo_fast",
+      "label": "Fast World (15s)",
+      "category": "chaos",
+      "weight": 1.0,
+      "cooldownSeconds": 90,
+      "kind": "temporary",
+      "durationSeconds": 15,
+      "buffKey": "slomo",
+      "params": { "rate": 2.5 },
+      "description": "Time dilation — everything speeds up."
+    },
+    {
+      "id": "slomo_slow",
+      "label": "Molasses World (12s)",
+      "category": "chaos",
+      "weight": 1.0,
+      "cooldownSeconds": 90,
+      "kind": "temporary",
+      "durationSeconds": 12,
+      "buffKey": "slomo",
+      "params": { "rate": 0.4 },
+      "description": "Time dilation — everything slows down."
+    },
+    {
+      "id": "noclip",
+      "label": "Ghost Mode (15s)",
+      "category": "chaos",
+      "weight": 0.8,
+      "cooldownSeconds": 120,
+      "kind": "temporary",
+      "durationSeconds": 15,
+      "buffKey": "move",
+      "description": "No collision + free fly for a short time."
+    },
+    {
+      "id": "heal_full",
+      "label": "Full Heal",
+      "category": "good",
+      "weight": 1.2,
+      "cooldownSeconds": 45,
+      "kind": "instant",
+      "description": "Restore the player to full health."
+    },
+    {
+      "id": "hurt_player",
+      "label": "Take Damage",
+      "category": "bad",
+      "weight": 1.0,
+      "cooldownSeconds": 60,
+      "kind": "instant",
+      "params": { "hp": 25 },
+      "description": "Drop the player's health to a sliver."
+    },
+    {
+      "id": "give_item",
+      "label": "Free Item",
+      "category": "good",
+      "weight": 1.0,
+      "cooldownSeconds": 60,
+      "kind": "instant",
+      "params": {
+        "itemType": "DA_Gold_ItemType",
+        "actorPath": "/Game/Blueprints/Items/Resources/BP_Gold",
+        "count": 1
+      },
+      "description": "Grant the player an item (inventory insert; falls back to spawning a world pickup)."
+    },
+    {
+      "id": "unlock_all_recipes",
+      "label": "Unlock All Recipes",
+      "category": "good",
+      "weight": 0.6,
+      "cooldownSeconds": 600,
+      "kind": "instant",
+      "description": "Unlock every crafting blueprint."
+    },
+    {
+      "id": "kill_all_creatures",
+      "label": "Purge All Creatures",
+      "category": "good",
+      "weight": 0.8,
+      "cooldownSeconds": 120,
+      "kind": "instant",
+      "description": "Despawn all nearby AI (including that leviathan you just summoned)."
+    }
+  ]
+}
