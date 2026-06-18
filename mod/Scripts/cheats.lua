@@ -108,11 +108,18 @@ end
 -- Standard UE5 CheatManager methods inherited via PlayerController.
 -- Ghost = no collision + fly (true noclip). Fly = fly with collision.
 -- Walk = restore gravity. Slomo(N) = time dilation; >1.0 = faster.
+-- NOTE: the inherited Ghost/Fly/Walk no-op on SN2's custom swim pawn (they
+-- return OK but nothing changes). Use M.noclip() for in-game noclip instead.
 function M.ghost()  return call_cheat("Ghost") end
 function M.fly()    return call_cheat("Fly") end
 function M.walk()   return call_cheat("Walk") end
 function M.god()    return call_cheat("God") end
 function M.slomo(v) return call_cheat("Slomo", v or 1.0) end
+
+-- SN2's OWN noclip cheat (USN2CheatManager::NoClip, Subnautica2.hpp). Unlike the
+-- inherited Ghost, this one actually works on the swim pawn. It's a TOGGLE, so
+-- call it again to turn it back off.
+function M.noclip() return call_cheat("NoClip") end
 function M.teleport() return call_cheat("Teleport") end
 
 -- SwimSpeed(float) — USN2CheatManager absolute swim-speed setter. Player-only
@@ -133,6 +140,14 @@ function M.swim_speed(n) return call_cheat("SwimSpeed", n or 1500) end
 --   name: short creature name without BP_ prefix or _C suffix
 function M.spawn_creature(name)
     return call_cheat("SpawnCreature", name or "Halfmoon")
+end
+
+-- USN2CheatManager::Give(FString ItemNameAndQuantity) — the dev item-grant cheat
+-- (same blessed path as SpawnCreature, so it adds to the inventory properly). The
+-- arg is "<ItemName> <Quantity>", e.g. "Gold 1". Far more reliable than spawning
+-- a BP_ pickup actor by hand (which can fail collision or crash on a bad class).
+function M.give(item_and_qty)
+    return call_cheat("Give", item_and_qty or "Gold 1")
 end
 
 -- Teleport the player pawn N units along the camera's forward vector.

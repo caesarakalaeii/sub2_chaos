@@ -76,6 +76,8 @@ local files = {
 	"tests/chaos_test.lua",
 	"tests/chaos_integration_test.lua",
 	"tests/manifest_test.lua",
+	"tests/spawn_test.lua",
+	"tests/announce_test.lua",
 }
 for _, file in ipairs(files) do
 	print("--- " .. file)

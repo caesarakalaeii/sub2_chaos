@@ -11,9 +11,16 @@ local M = {}
 
 local IS_WINDOWS = package.config:sub(1, 1) == "\\"
 
+-- ensure_dir runs at most ONCE per directory per session. os.execute spawns a
+-- shell, which under Proton/Wine is a multi-millisecond hitch on the game thread
+-- — fine once at boot, but the status heartbeat writes every ~2s, so doing it
+-- every write caused a periodic stutter. The mod folder always exists anyway;
+-- this is only a safety net for an unusual --bridge-file location.
+local ensured = {}
 local function ensure_dir(path)
 	local dir = path:match("^(.*)[/\\][^/\\]+$")
-	if not dir then return end
+	if not dir or ensured[dir] then return end
+	ensured[dir] = true
 	if IS_WINDOWS then
 		pcall(os.execute, 'mkdir "' .. dir:gsub("/", "\\") .. '" 2>nul')
 	else

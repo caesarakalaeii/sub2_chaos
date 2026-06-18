@@ -10,7 +10,15 @@
       "cooldownSeconds": 180,
       "kind": "instant",
       "leviathan": true,
-      "params": { "creature": "CollectorLeviathan", "count": 1 },
+      "params": {
+        "creature": "CollectorLeviathan",
+        "count": 1,
+        "class_path": "/Game/Blueprints/AI/Agents/CollectorLeviathan/BP_CollectorLeviathan.BP_CollectorLeviathan_C",
+        "class_short_name": "BP_CollectorLeviathan_C",
+        "instance_short_name": "BP_CollectorLeviathan_C",
+        "asset_path": "/Game/Blueprints/AI/Agents/CollectorLeviathan/BP_CollectorLeviathan",
+        "spawn_distance": 800.0
+      },
       "description": "A leviathan spawns and hunts the player."
     },
     {
@@ -21,7 +29,15 @@
       "cooldownSeconds": 360,
       "kind": "instant",
       "leviathan": true,
-      "params": { "creature": "VoidLeviathanChild", "count": 3 },
+      "params": {
+        "creature": "VoidLeviathanChild",
+        "count": 3,
+        "class_path": "/Game/Blueprints/AI/Agents/VoidLeviathan/BP_VoidLeviathanChild.BP_VoidLeviathanChild_C",
+        "class_short_name": "BP_VoidLeviathanChild_C",
+        "instance_short_name": "BP_VoidLeviathanChild_C",
+        "asset_path": "/Game/Blueprints/AI/Agents/VoidLeviathan/BP_VoidLeviathanChild",
+        "spawn_distance": 1500.0
+      },
       "description": "Several leviathans spawn at once. Good luck."
     },
     {
@@ -109,11 +125,12 @@
       "cooldownSeconds": 60,
       "kind": "instant",
       "params": {
+        "itemName": "Gold",
         "itemType": "DA_Gold_ItemType",
         "actorPath": "/Game/Blueprints/Items/Resources/BP_Gold",
         "count": 1
       },
-      "description": "Grant the player an item (inventory insert; falls back to spawning a world pickup)."
+      "description": "Grant the player an item via the Give cheat (falls back to spawning a world pickup)."
     },
     {
       "id": "unlock_all_recipes",

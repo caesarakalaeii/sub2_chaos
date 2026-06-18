@@ -23,7 +23,8 @@ local function fake_ctx()
 			god = rec("god"), swim_speed = rec("swim_speed"), slomo = rec("slomo"),
 			spawn_creature = rec("spawn_creature"), my_health = rec("my_health"),
 			ghost = rec("ghost"), walk = rec("walk"), kill_all = rec("kill_all"),
-			unlock_all_recipes = rec("unlock_all_recipes"),
+			noclip = rec("noclip"), destroy_creatures = rec("destroy_creatures"),
+			give = rec("give_cheat"), unlock_all_recipes = rec("unlock_all_recipes"),
 		},
 		items = { give = rec("give") },
 		aggro = { start = rec("aggro_start") },
@@ -53,12 +54,89 @@ describe("events handlers", function()
 		assert.are.equal(400, ctx.calls[2][2])
 	end)
 
-	it("spawn_leviathan starts aggro then spawns the creature", function()
+	it("tunables (menu sliders) override durations, speeds and severity", function()
 		local ctx = fake_ctx()
+		ctx.tunables = {
+			effect_duration_scale = 2.0, super_speed = 2200,
+			slomo_fast_rate = 4.0, slomo_slow_rate = 0.2, hurt_player_hp = 5,
+		}
+		-- super_speed uses the slider value and a 2x-scaled duration (20 -> 40).
+		events.handlers.super_speed(ctx, { params = { speed = 1500 }, durationSeconds = 20, buffKey = "swim" })
+		assert.are.equal(2200, ctx.calls[1][2])
+		assert.are.equal(40, ctx.buffs.added[1].d)
+		-- slomo rates come from the sliders, not the event params.
+		events.handlers.slomo_fast(ctx, { params = { rate = 2.5 }, durationSeconds = 15 })
+		assert.are.equal(4.0, ctx.calls[2][2])
+		events.handlers.slomo_slow(ctx, { params = { rate = 0.4 }, durationSeconds = 12 })
+		assert.are.equal(0.2, ctx.calls[3][2])
+		-- hurt severity from the slider.
+		events.handlers.hurt_player(ctx, { params = { hp = 25 } })
+		assert.are.equal(5, ctx.calls[4][2])
+	end)
+
+	it("leviathan tunables override spawn distance and swarm size", function()
+		local ctx = fake_ctx()
+		local cfgs = {}
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.tunables = { leviathan_spawn_distance = 2500, swarm_size = 5 }
+		ctx.spawn = function(cfg) cfgs[#cfgs + 1] = cfg; return { {} }, "class_path" end
+		events.handlers.spawn_leviathan(ctx, { id = "spawn_leviathan", params = { class_path = "/Game/X.X_C" } })
+		assert.are.equal(2500, cfgs[1].spawn_distance)
+		events.handlers.spawn_leviathan_swarm(ctx, { id = "spawn_leviathan_swarm", params = { class_path = "/Game/V.V_C", count = 3 } })
+		assert.are.equal(5, cfgs[2].spawn_count) -- slider overrides params.count
+		assert.are.equal(2500, cfgs[2].spawn_distance)
+	end)
+
+	it("spawn_leviathan starts aggro then spawns via ctx.spawn (SpawnActor path)", function()
+		local ctx = fake_ctx()
+		local got_cfg
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.spawn = function(cfg) got_cfg = cfg; return { {}, {} }, "class_path" end
+		local ok = events.handlers.spawn_leviathan(ctx, {
+			id = "spawn_leviathan",
+			params = { class_path = "/Game/X.X_C", spawn_distance = 800 },
+		})
+		assert.is_true(ok)
+		assert.are.equal("aggro_start", ctx.calls[1][1]) -- aggro started first
+		assert.is_nil(ctx.calls[2])                       -- the SpawnCreature cheat was NOT used
+		assert.are.equal("/Game/X.X_C", got_cfg.class_path)
+		assert.are.equal(1, got_cfg.spawn_count)
+		assert.is_true(got_cfg.ignore_collisions)
+	end)
+
+	it("spawn_leviathan reports failure when ctx.spawn cannot resolve a class", function()
+		local ctx = fake_ctx()
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.spawn = function() return nil, "unresolved" end
+		assert.is_false(events.handlers.spawn_leviathan(ctx, { id = "spawn_leviathan", params = {} }))
+	end)
+
+	it("spawn_leviathan falls back to the SpawnCreature cheat when ctx.spawn is absent", function()
+		local ctx = fake_ctx() -- no ctx.spawn
 		events.handlers.spawn_leviathan(ctx, { params = { creature = "CollectorLeviathan" } })
 		assert.are.equal("aggro_start", ctx.calls[1][1])
 		assert.are.equal("spawn_creature", ctx.calls[2][1])
 		assert.are.equal("CollectorLeviathan", ctx.calls[2][2])
+	end)
+
+	it("spawn_leviathan_swarm spawns p.count creatures with jitter", function()
+		local ctx = fake_ctx()
+		local got_cfg
+		ctx.log = { event = function() end, warn = function() end }
+		ctx.spawn = function(cfg) got_cfg = cfg; return { {}, {}, {} }, "class_path" end
+		assert.is_true(events.handlers.spawn_leviathan_swarm(ctx, {
+			id = "spawn_leviathan_swarm", params = { class_path = "/Game/V.V_C", count = 3 },
+		}))
+		assert.are.equal(3, got_cfg.spawn_count)
+		assert.is_true(got_cfg.spawn_jitter > 0) -- swarm gets spread so bodies don't cull
+	end)
+
+	it("noclip toggles SN2 NoClip on, and reverts by toggling it off again", function()
+		local ctx = fake_ctx()
+		events.handlers.noclip(ctx, { buffKey = "move", durationSeconds = 15 })
+		assert.are.equal("noclip", ctx.calls[1][1]) -- enabled via NoClip, NOT Ghost
+		ctx.buffs.added[1].rev()
+		assert.are.equal("noclip", ctx.calls[2][1]) -- revert toggles NoClip off
 	end)
 
 	it("slomo events share the slomo buff key and revert to 1.0", function()
@@ -70,21 +148,30 @@ describe("events handlers", function()
 		assert.are.equal(1.0, ctx.calls[2][2])
 	end)
 
-	it("give_item delegates to items.give", function()
+	it("give_item uses the Give cheat with '<item> <qty>' when itemName is set", function()
 		local ctx = fake_ctx()
-		events.handlers.give_item(ctx, { params = { itemType = "DA_Gold_ItemType", count = 1 } })
-		assert.are.equal("give", ctx.calls[1][1])
+		assert.is_true(events.handlers.give_item(ctx, { params = { itemName = "Gold", count = 2 } }))
+		assert.are.equal("give_cheat", ctx.calls[1][1])
+		assert.are.equal("Gold 2", ctx.calls[1][2])
 	end)
 
-	it("heal/hurt/kill_all/unlock call the right cheat", function()
+	it("give_item falls back to items.give (world spawn) when no itemName", function()
+		local ctx = fake_ctx()
+		events.handlers.give_item(ctx, { params = { actorPath = "/Game/BP_Gold" } })
+		assert.are.equal("give", ctx.calls[1][1]) -- items.give, not the cheat
+	end)
+
+	it("heal/hurt/purge/unlock call the right cheat", function()
 		local ctx = fake_ctx()
 		events.handlers.heal_full(ctx, {})
 		assert.are.equal("my_health", ctx.calls[1][1])
 		assert.are.equal(100, ctx.calls[1][2])
 		events.handlers.hurt_player(ctx, { params = { hp = 25 } })
 		assert.are.equal(25, ctx.calls[2][2])
+		-- Purge despawns creatures only (DestroyCreatures), never KillAll which
+		-- would also kill the player.
 		events.handlers.kill_all_creatures(ctx, {})
-		assert.are.equal("kill_all", ctx.calls[3][1])
+		assert.are.equal("destroy_creatures", ctx.calls[3][1])
 		events.handlers.unlock_all_recipes(ctx, {})
 		assert.are.equal("unlock_all_recipes", ctx.calls[4][1])
 	end)
