@@ -18,6 +18,7 @@ type Config struct {
 	VoteDuration         time.Duration
 	Cooldown             time.Duration
 	ApplyHold            time.Duration
+	AnnounceLead         time.Duration // heads-up shown before the winner executes
 	AvoidImmediateRepeat bool
 }
 
@@ -37,6 +38,7 @@ type Machine struct {
 	cur         *Round
 	winner      *bridge.Winner
 	winnerNonce string
+	applyAt     time.Time // when the mod should execute the current winner
 	active      bool
 }
 
@@ -69,6 +71,29 @@ func NewMachine(cfg Config, cat *catalog.Catalog, seed int64) *Machine {
 // phase's countdown and starts no new rounds.
 func (m *Machine) SetActive(active bool) { m.active = active }
 
+// Reconfig carries live round-shaping changes from the in-game menu. A zero
+// field means "leave unchanged" (cooldown uses a sentinel since 0 is valid).
+type Reconfig struct {
+	VoteDuration time.Duration
+	Cooldown     time.Duration
+	HasCooldown  bool // distinguishes a real 0 cooldown (back-to-back) from "unset"
+	Options      int
+}
+
+// Reconfigure applies menu-driven settings. Out-of-range values are ignored.
+// Changes take effect at the next round (the current round/phase is undisturbed).
+func (m *Machine) Reconfigure(rc Reconfig) {
+	if rc.VoteDuration > 0 {
+		m.cfg.VoteDuration = rc.VoteDuration
+	}
+	if rc.HasCooldown && rc.Cooldown >= 0 {
+		m.cfg.Cooldown = rc.Cooldown
+	}
+	if rc.Options >= 2 && rc.Options <= 9 {
+		m.cfg.OptionsPerRound = rc.Options
+	}
+}
+
 // Phase returns the current phase (for tests/logging).
 func (m *Machine) Phase() string { return m.phase }
 
@@ -93,6 +118,7 @@ func (m *Machine) startRound(now time.Time) {
 	m.cur = NewRound(len(m.options))
 	m.winner = nil
 	m.winnerNonce = ""
+	m.applyAt = time.Time{}
 	m.phase = bridge.PhaseVoting
 	m.phaseEnds = now.Add(m.cfg.VoteDuration)
 }
@@ -105,7 +131,11 @@ func (m *Machine) resolve(now time.Time) {
 	}
 	m.winnerNonce = fmt.Sprintf("%s-r%d", m.token, m.round)
 	m.phase = bridge.PhaseApply
-	m.phaseEnds = now.Add(m.cfg.ApplyHold)
+	// The winner publishes now (the announcement); the mod holds execution until
+	// applyAt = now + lead. The apply phase must outlast the lead so the winner
+	// stays in the bridge long enough for the mod to both see it and reach applyAt.
+	m.applyAt = now.Add(m.cfg.AnnounceLead)
+	m.phaseEnds = now.Add(m.cfg.AnnounceLead + m.cfg.ApplyHold)
 }
 
 // Advance drives phase transitions for the given time and returns the current
@@ -115,6 +145,9 @@ func (m *Machine) Advance(now time.Time) bridge.State {
 	if !m.lastAdvance.IsZero() && !m.active && !m.phaseEnds.IsZero() {
 		if delta := now.Sub(m.lastAdvance); delta > 0 {
 			m.phaseEnds = m.phaseEnds.Add(delta)
+			if !m.applyAt.IsZero() {
+				m.applyAt = m.applyAt.Add(delta) // freeze the heads-up countdown too
+			}
 		}
 	}
 	m.lastAdvance = now
@@ -163,6 +196,10 @@ func (m *Machine) snapshot(now time.Time) bridge.State {
 		tallies = m.cur.Counts()
 		total = m.cur.Total()
 	}
+	applyAt := ""
+	if !m.applyAt.IsZero() {
+		applyAt = m.applyAt.UTC().Format(time.RFC3339Nano)
+	}
 	return bridge.State{
 		SchemaVersion:       bridge.SchemaVersion,
 		Round:               m.round,
@@ -175,14 +212,16 @@ func (m *Machine) snapshot(now time.Time) bridge.State {
 		Winner:              m.winner,
 		WinnerNonce:         m.winnerNonce,
 		ServerTime:          now.UTC().Format(time.RFC3339Nano),
+		ApplyAtServerTime:   applyAt,
+		AnnounceLeadSeconds: int(m.cfg.AnnounceLead.Seconds()),
 	}
 }
 
 // Run drives the machine: it ticks at the given interval, feeds votes from the
 // channel, applies active-state changes, and publishes each snapshot. All
 // machine mutation happens in this one goroutine, so no locking is needed.
-// active may be nil. Returns when ctx is cancelled.
-func Run(ctx context.Context, m *Machine, votes <-chan chat.Message, active <-chan bool, tick time.Duration, clock func() time.Time, publish func(bridge.State)) {
+// active and reconfig may be nil. Returns when ctx is cancelled.
+func Run(ctx context.Context, m *Machine, votes <-chan chat.Message, active <-chan bool, reconfig <-chan Reconfig, tick time.Duration, clock func() time.Time, publish func(bridge.State)) {
 	if tick <= 0 {
 		tick = 250 * time.Millisecond
 	}
@@ -200,6 +239,8 @@ func Run(ctx context.Context, m *Machine, votes <-chan chat.Message, active <-ch
 			m.Offer(msg)
 		case a := <-active:
 			m.SetActive(a)
+		case rc := <-reconfig:
+			m.Reconfigure(rc)
 		case <-t.C:
 			publish(m.Advance(clock()))
 		}

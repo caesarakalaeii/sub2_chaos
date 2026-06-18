@@ -112,3 +112,91 @@ func TestMachinePauseFreezesCountdown(t *testing.T) {
 		t.Fatalf("phase=%s; want apply after resume+expiry", s.Phase)
 	}
 }
+
+func TestMachineReconfigureAppliesNextRound(t *testing.T) {
+	m := NewMachine(testCfg(), testCatalog(), 42) // vote 10s, cooldown 5s, options 4
+	base := time.Unix(1_700_000_000, 0).UTC()
+
+	s := m.Advance(base)
+	if len(s.Options) != 4 {
+		t.Fatalf("round-1 options=%d; want 4", len(s.Options))
+	}
+
+	// Player changes the menu mid-round: longer votes, 6 options, no cooldown.
+	m.Reconfigure(Reconfig{VoteDuration: 20 * time.Second, Options: 6, Cooldown: 0, HasCooldown: true})
+
+	// Current round is undisturbed (still 4 options, original 10s window).
+	s = m.Advance(base.Add(1 * time.Second))
+	if len(s.Options) != 4 {
+		t.Fatalf("reconfig must not disturb the running round; options=%d want 4", len(s.Options))
+	}
+
+	// Round 1 resolves at +10s (apply hold 2s, no announce lead in testCfg).
+	s = m.Advance(base.Add(11 * time.Second))
+	if s.Phase != bridge.PhaseApply {
+		t.Fatalf("phase=%s; want apply", s.Phase)
+	}
+	// Cooldown is now 0 -> apply elapses straight into a new round at +13s.
+	s = m.Advance(base.Add(13*time.Second + 100*time.Millisecond))
+	if s.Phase != bridge.PhaseVoting || s.Round != 2 {
+		t.Fatalf("phase=%s round=%d; want voting round 2 (cooldown=0)", s.Phase, s.Round)
+	}
+	// The new round reflects the menu: 6 options and a 20s window.
+	if len(s.Options) != 6 {
+		t.Fatalf("round-2 options=%d; want 6 after reconfigure", len(s.Options))
+	}
+	if s.VoteDurationSeconds != 20 {
+		t.Fatalf("round-2 voteDurationSeconds=%d; want 20", s.VoteDurationSeconds)
+	}
+}
+
+func TestReconfigureIgnoresOutOfRange(t *testing.T) {
+	m := NewMachine(testCfg(), testCatalog(), 1)
+	m.Reconfigure(Reconfig{VoteDuration: 0, Options: 99}) // both invalid -> ignored
+	if m.cfg.OptionsPerRound != 4 || m.cfg.VoteDuration != 10*time.Second {
+		t.Fatalf("out-of-range reconfigure changed cfg: opts=%d dur=%v", m.cfg.OptionsPerRound, m.cfg.VoteDuration)
+	}
+}
+
+func TestMachineAnnounceLead(t *testing.T) {
+	cfg := testCfg()
+	cfg.AnnounceLead = 5 * time.Second // winner announced 5s before it should execute
+	m := NewMachine(cfg, testCatalog(), 42)
+	base := time.Unix(1_700_000_000, 0).UTC()
+
+	m.Advance(base)                            // voting, ends base+10
+	s := m.Advance(base.Add(11 * time.Second)) // voting elapsed -> resolve
+	if s.Phase != bridge.PhaseApply || s.Winner == nil {
+		t.Fatalf("phase=%s winner=%v; want apply with a winner", s.Phase, s.Winner)
+	}
+	if s.AnnounceLeadSeconds != 5 {
+		t.Fatalf("announceLeadSeconds=%d; want 5", s.AnnounceLeadSeconds)
+	}
+	// applyAt must be the lead ahead of serverTime (resolve happened at base+11).
+	applyAt, err := time.Parse(time.RFC3339Nano, s.ApplyAtServerTime)
+	if err != nil {
+		t.Fatalf("applyAtServerTime %q not parseable: %v", s.ApplyAtServerTime, err)
+	}
+	if want := base.Add(16 * time.Second); !applyAt.Equal(want) {
+		t.Fatalf("applyAt=%s; want %s (resolve + 5s lead)", applyAt, want)
+	}
+
+	// The apply phase must still be live a hair before applyAt (the winner stays
+	// in the bridge through the whole heads-up window, not just ApplyHold).
+	s = m.Advance(base.Add(15 * time.Second))
+	if s.Phase != bridge.PhaseApply || s.Winner == nil {
+		t.Fatalf("phase=%s winner=%v; want still apply during the heads-up", s.Phase, s.Winner)
+	}
+
+	// Apply phase = lead(5) + hold(2) = 7s after resolve -> ends at base+18.
+	s = m.Advance(base.Add(18*time.Second + 100*time.Millisecond))
+	if s.Phase != bridge.PhaseCooldown {
+		t.Fatalf("phase=%s; want cooldown after lead+hold", s.Phase)
+	}
+
+	// A fresh round clears the pending apply timestamp.
+	s = m.Advance(base.Add(40 * time.Second))
+	if s.Phase != bridge.PhaseVoting || s.ApplyAtServerTime != "" {
+		t.Fatalf("phase=%s applyAt=%q; want voting with cleared applyAt", s.Phase, s.ApplyAtServerTime)
+	}
+}

@@ -112,6 +112,7 @@ func run() error {
 		VoteDuration:         cfg.Vote.VoteDuration(),
 		Cooldown:             cfg.Vote.CooldownDuration(),
 		ApplyHold:            cfg.Vote.ApplyHoldDuration(),
+		AnnounceLead:         cfg.Vote.AnnounceLeadDuration(),
 		AvoidImmediateRepeat: cfg.Vote.AvoidImmediateRepeat,
 	}, cat, cfg.Vote.Seed)
 
@@ -125,7 +126,8 @@ func run() error {
 	}
 
 	active := make(chan bool, 1)
-	go pollStatus(ctx, statusPath, active, logger)
+	reconfig := make(chan vote.Reconfig, 1)
+	go pollStatus(ctx, statusPath, active, reconfig, !*simulate, logger)
 
 	votes := make(chan chat.Message, 256)
 	cs := buildSource(*simulate, cfg, *simVoters, *simRate, logger)
@@ -139,7 +141,7 @@ func run() error {
 	tick := time.Second / time.Duration(maxInt(cfg.Bridge.WriteHz, 1))
 	logger("info", "ready (mode=%s, options=%d, vote=%ds, cooldown=%ds)",
 		srcMode(*simulate, cfg), cfg.Vote.OptionsPerRound, cfg.Vote.VoteDurationSeconds, cfg.Vote.CooldownSeconds)
-	vote.Run(ctx, m, votes, active, tick, time.Now, publish)
+	vote.Run(ctx, m, votes, active, reconfig, tick, time.Now, publish)
 	logger("info", "shutting down")
 	return nil
 }
@@ -214,19 +216,42 @@ func buildSource(simulate bool, cfg *config.Config, voters int, rate time.Durati
 	}
 }
 
+// statusStaleAfter is how long without a fresh chaos_status.json write before the
+// engine concludes the game isn't running. Must exceed the mod's status
+// heartbeat (~2s) by a comfortable margin to absorb poll/pause jitter.
+const statusStaleAfter = 6 * time.Second
+
 // pollStatus reads chaos_status.json and pushes active-state changes to the
-// machine's goroutine (so gameplay menus/pause halt voting).
-func pollStatus(ctx context.Context, path string, active chan<- bool, logger logFn) {
+// machine's goroutine (so gameplay menus/pause halt voting). When requireGame is
+// set (normal runs, not --simulate) it also treats a stale/absent status as "the
+// game isn't running" and pauses — so the engine doesn't burn rounds and chat
+// votes while the game is closed. The mod heartbeats the status file so a running
+// game keeps it fresh even with no state change.
+func pollStatus(ctx context.Context, path string, active chan<- bool, reconfig chan<- vote.Reconfig, requireGame bool, logger logFn) {
 	t := time.NewTicker(500 * time.Millisecond)
 	defer t.Stop()
 	last := true
+	lastRunning := true
+	var lastRC *vote.Reconfig
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
 			st, _ := bridge.ReadStatus(path)
-			a := bridge.Active(st)
+			running := true
+			if requireGame {
+				running = bridge.Fresh(st, time.Now(), statusStaleAfter)
+				if running != lastRunning {
+					lastRunning = running
+					if running {
+						logger("info", "game detected — resuming")
+					} else {
+						logger("info", "game not running (no fresh status) — pausing")
+					}
+				}
+			}
+			a := running && bridge.Active(st)
 			if a != last {
 				last = a
 				logger("info", "gameplay active=%v", a)
@@ -236,8 +261,33 @@ func pollStatus(ctx context.Context, path string, active chan<- bool, logger log
 					return
 				}
 			}
+			// Apply menu-driven vote settings when they change.
+			if rc, ok := reconfigFromStatus(st); ok && (lastRC == nil || rc != *lastRC) {
+				lastRC = &rc
+				logger("info", "vote settings from menu: duration=%ds options=%d cooldown=%ds",
+					rc.VoteDuration/time.Second, rc.Options, rc.Cooldown/time.Second)
+				select {
+				case reconfig <- rc:
+				case <-ctx.Done():
+					return
+				}
+			}
 		}
 	}
+}
+
+// reconfigFromStatus extracts menu-driven vote settings from the mod's status,
+// or (zero,false) if the mod sent none (older mod / no menu values).
+func reconfigFromStatus(st *bridge.Status) (vote.Reconfig, bool) {
+	if st == nil || st.VoteDurationSeconds <= 0 {
+		return vote.Reconfig{}, false
+	}
+	return vote.Reconfig{
+		VoteDuration: time.Duration(st.VoteDurationSeconds) * time.Second,
+		Cooldown:     time.Duration(st.VoteCooldownSeconds) * time.Second,
+		HasCooldown:  true,
+		Options:      st.VoteOptions,
+	}, true
 }
 
 type logFn func(level, format string, a ...any)

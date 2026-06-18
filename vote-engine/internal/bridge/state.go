@@ -44,6 +44,12 @@ type State struct {
 	Winner              *Winner  `json:"winner"`
 	WinnerNonce         string   `json:"winnerNonce"`
 	ServerTime          string   `json:"serverTime"`
+	// ApplyAtServerTime is when the mod should EXECUTE the winner (serverTime +
+	// the announce lead). Empty unless a winner is pending. The mod announces the
+	// winner on sight but holds execution until this moment so the player gets a
+	// heads-up. AnnounceLeadSeconds is that lead, echoed for the overlay/mod.
+	ApplyAtServerTime   string `json:"applyAtServerTime,omitempty"`
+	AnnounceLeadSeconds int    `json:"announceLeadSeconds"`
 }
 
 // Status is the document the mod writes back (chaos_status.json) so the engine
@@ -55,4 +61,10 @@ type Status struct {
 	LastAppliedNonce string `json:"lastAppliedNonce"`
 	ModVersion       string `json:"modVersion"`
 	UpdatedAt        string `json:"updatedAt"`
+	// Vote-shaping settings the player set in the in-game menu (0/absent = leave
+	// the engine's configured value). The engine applies these at the next round
+	// so voting is tuned from the menu, not config.yaml.
+	VoteDurationSeconds int `json:"voteDurationSeconds,omitempty"`
+	VoteOptions         int `json:"voteOptions,omitempty"`
+	VoteCooldownSeconds int `json:"voteCooldownSeconds,omitempty"`
 }

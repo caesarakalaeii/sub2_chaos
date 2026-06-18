@@ -51,6 +51,7 @@ type VoteConfig struct {
 	VoteDurationSeconds  int   `yaml:"voteDurationSeconds"`
 	CooldownSeconds      int   `yaml:"cooldownSeconds"`
 	ApplyHoldSeconds     int   `yaml:"applyHoldSeconds"`
+	AnnounceLeadSeconds  int   `yaml:"announceLeadSeconds"`
 	AvoidImmediateRepeat bool  `yaml:"avoidImmediateRepeat"`
 	CategoryBalance      bool  `yaml:"categoryBalance"`
 	Seed                 int64 `yaml:"seed"`
@@ -97,6 +98,7 @@ func Default() *Config {
 			VoteDurationSeconds:  30,
 			CooldownSeconds:      20,
 			ApplyHoldSeconds:     3,
+			AnnounceLeadSeconds:  5,
 			AvoidImmediateRepeat: true,
 		},
 		Bridge:  BridgeConfig{ModName: "Sub2Chaos", UseDiscoveryFile: true, WriteHz: 4},
@@ -149,6 +151,9 @@ func (c *Config) Validate() error {
 	if c.Vote.VoteDurationSeconds <= 0 {
 		return fmt.Errorf("config: vote.voteDurationSeconds must be > 0")
 	}
+	if c.Vote.AnnounceLeadSeconds < 0 {
+		return fmt.Errorf("config: vote.announceLeadSeconds must be >= 0")
+	}
 	if c.Overlay.Enabled && (c.Overlay.Port <= 0 || c.Overlay.Port > 65535) {
 		return fmt.Errorf("config: overlay.port must be a valid port")
 	}
@@ -173,4 +178,7 @@ func (v VoteConfig) CooldownDuration() time.Duration {
 }
 func (v VoteConfig) ApplyHoldDuration() time.Duration {
 	return time.Duration(v.ApplyHoldSeconds) * time.Second
+}
+func (v VoteConfig) AnnounceLeadDuration() time.Duration {
+	return time.Duration(v.AnnounceLeadSeconds) * time.Second
 }
