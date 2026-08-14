@@ -21,3 +21,8 @@ mod/**/bridge_path.txt
 .luacheckcache
 luacov.stats.out
 luacov.report.out
+
+# ── nix dev shell (flake.nix) ─────────────────────────────────────
+.direnv/
+result
+result-*
